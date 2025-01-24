@@ -1,9 +1,19 @@
 import express from "express";
 import { dbConnect } from "./db";
 import userRouter from "./routes/userRoutes";
+
 require('dotenv').config();
 
+declare global {
+    namespace Express {
+      interface Request {
+        user?: any;
+      }
+    }
+  }
+
 const app = express();
+
 
 dbConnect().then(()=>{
     
