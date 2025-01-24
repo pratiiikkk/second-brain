@@ -1,4 +1,4 @@
-import { model, Schema } from "mongoose";
+import  { model, Schema } from "mongoose";
 
 
 const userSchema = new Schema({
@@ -11,8 +11,13 @@ const userSchema = new Schema({
     type: String,
     require: true,
   },
+  share:{
+    type:Boolean,
+    default:false
+  }
 });
 
 
+const User = model("User", userSchema);
 
-export const User = model("user", userSchema);
+export default User

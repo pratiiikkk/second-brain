@@ -10,4 +10,4 @@ const tagSchema =  new Schema({
   
 })
 
-export const Tag = model("tag",tagSchema);
+export const Tag = model("Tag",tagSchema);

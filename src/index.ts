@@ -1,5 +1,5 @@
-import express from "express";
 import { dbConnect } from "./db";
+import express from "express";
 import userRouter from "./routes/userRoutes";
 
 require('dotenv').config();
@@ -14,6 +14,8 @@ declare global {
 
 const app = express();
 
+app.use(express.json());
+app.use("/api/v1",userRouter)
 
 dbConnect().then(()=>{
     
@@ -23,8 +25,6 @@ dbConnect().then(()=>{
 }).catch((e)=>{
     console.log("db connection failed",e.message)
 })
-app.use(express.json());
 
 
-app.use("/api/v1",userRouter)
 

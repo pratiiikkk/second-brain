@@ -1,12 +1,14 @@
 import { Request, Response, Router } from "express";
 import { z } from "zod";
-import { User } from "../models/user.model";
+import User from "../models/user.model";
+
 import bcrypt from "bcryptjs";
 import { generateAccessToken } from "../lib/generatetoken";
-
 import { auth } from "../middleware/auth";
 import { Content } from "../models/content.model";
 import { Tag } from "../models/tag.model";
+import crypto from "crypto";
+import { Link } from "../models/link.model";
 
 const router = Router();
 
@@ -141,8 +143,10 @@ router.delete("/content/delete", auth, async (req: Request, res: Response) => {
   try {
     const { content_id } = req.body;
 
-  
-    const content = await Content.findOneAndDelete({ _id: content_id, userId: req.user._id });
+    const content = await Content.findOneAndDelete({
+      _id: content_id,
+      userId: req.user._id,
+    });
 
     if (!content) {
       res.status(403).json({
@@ -161,4 +165,52 @@ router.delete("/content/delete", auth, async (req: Request, res: Response) => {
   }
 });
 
+router.get("/content/share", auth, async (req: Request, res: Response) => {
+  try {
+    const { _id, share } = req.user;
+
+    if (share) {
+      await Promise.all([
+        Link.findOneAndDelete({ userId: _id }),
+        User.findByIdAndUpdate(_id, { share: false }),
+      ]);
+
+      res.status(200).json({ message: "Deleted shareable link" });
+    } else {
+      const hash = generateRandomHash();
+      const link = new Link({ hash, userId: _id });
+
+      await Promise.all([
+        User.findByIdAndUpdate(_id, { share: true }),
+        link.save(),
+      ]);
+
+      res.status(200).json({ link: hash });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+    console.log(error);
+  }
+});
+
+router.get("/content", auth, async (req: Request, res: Response) => {
+  try {
+    const { _id } = req.user;
+
+    const contents =
+      (await Content.find({ userId: _id }).populate("userId", "username")) ||
+      [];
+
+    res.status(200).json({
+      data: contents,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+    console.log(error);
+  }
+});
 export default router;
+
+function generateRandomHash() {
+  return crypto.randomBytes(16).toString("hex");
+}

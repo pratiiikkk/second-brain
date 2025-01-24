@@ -1,4 +1,4 @@
-import {model ,Types ,Schema} from "mongoose";
+import {model,Types,Schema} from "mongoose";
 
 const contentTypes = ['image', 'video', 'article', 'audio']; // Extend as needed
 
@@ -11,4 +11,4 @@ const contentSchema = new Schema({
 });
 
 
-export const Content = model("content",contentSchema);
+export const Content = model("Content",contentSchema);
