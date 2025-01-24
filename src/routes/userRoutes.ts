@@ -3,8 +3,10 @@ import { z } from "zod";
 import { User } from "../models/user.model";
 import bcrypt from "bcryptjs";
 import { generateAccessToken } from "../lib/generatetoken";
-import jwt from "jsonwebtoken";
+
 import { auth } from "../middleware/auth";
+import { Content } from "../models/content.model";
+import { Tag } from "../models/tag.model";
 
 const router = Router();
 
@@ -88,9 +90,75 @@ router.post("/signin", async (req: Request, res: Response) => {
   }
 });
 
+const contentSchema = z.object({
+  link: z.string().url(),
+  type: z.enum(["image", "video", "article", "audio"]),
+  title: z.string().min(1, "Title is required"),
+  tags: z.array(z.string()).optional(),
+});
+
 router.post("/content", auth, async (req: Request, res: Response) => {
-  console.log(req.user)
-  res.status(200).json({ message:"lind" });
+  try {
+    const { _id } = req.user;
+    const { link, type, title, tags } = contentSchema.parse(req.body);
+
+    const tagIds = await Promise.all(
+      tags?.map(async (tag) => {
+        const existingTag = await Tag.findOne({ title: tag });
+        if (existingTag) {
+          return existingTag._id;
+        } else {
+          const newTag = new Tag({ title: tag });
+          await newTag.save();
+          return newTag._id;
+        }
+      }) || []
+    );
+
+    const newContent = new Content({
+      link,
+      type,
+      title,
+      tags: tagIds,
+      userId: _id,
+    });
+
+    await newContent.save();
+
+    res.status(201).json({
+      message: "Content created successfully",
+      content: newContent,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+    });
+    console.log(error);
+  }
+});
+
+router.delete("/content/delete", auth, async (req: Request, res: Response) => {
+  try {
+    const { content_id } = req.body;
+
+  
+    const content = await Content.findOneAndDelete({ _id: content_id, userId: req.user._id });
+
+    if (!content) {
+      res.status(403).json({
+        message: "You are not authorized to delete this content",
+      });
+      return;
+    }
+    res.status(200).json({
+      message: "deleted succesfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Internal server error",
+    });
+    console.log(error);
+  }
 });
 
 export default router;
